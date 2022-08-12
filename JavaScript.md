@@ -1964,6 +1964,7 @@ console.log(obj);//{ name: '浅拷贝', fn: { id: 1 } }
 ## 对象深拷贝
 
 ```js
+// 第一种方法
 let obj = {
     uname: "深拷贝",
 };
@@ -1987,6 +1988,11 @@ deepCopy(deep, obj);
 console.log(deep);
 obj.uname = "lyb"; //因为是深拷贝，所以修改obj不会修改deep的值
 console.log(deep);
+
+
+// 第二种方法
+const info = {name:"why", age: 18}
+const obj = JSON.parse(JSON.stringify(info))
 ```
 
 # 面向对象

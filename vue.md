@@ -254,6 +254,48 @@ npm install vue
   </script>
 ```
 
+## 侦听器watch
+
+> 监听data或者props数据的变化触发的函数，默认情况下我们的侦听器只会针对监听的数据本身的改变（内部发生的改变是不能侦听）
+
+```javascript
+watch：{
+    message(newValue, oldValue){
+        console.log(newValue)
+    }
+}
+
+// 深度侦听/立即执行(数据未变化也会执行一次)
+watch：{
+    message:{
+        handler: function(newValue, oldValue){
+        	console.log(newValue)
+        },
+        deep: true, //深度侦听
+        immediate: true //立即执行
+    }
+}
+
+// 只想侦听对象里属性的改变
+watch：{
+    "message.name": function(newValue, oldValue){
+        console.log(newValue)
+    }
+}
+
+//  用API侦听(可以传三个参数，属性名，函数，配置项)
+created(){
+    this.$watch("message",function(newValue, oldValue){
+        console.log(newValue)
+    },{
+        deep: true, //深度侦听
+        immediate: true //立即执行
+    })
+}
+```
+
+
+
 ## ES6字面量的增强写法
 
 ### 属性的增强写法
@@ -1280,6 +1322,7 @@ node -v
 
 ```
 npm install webpack@3.6.0 -g
+npm install webpack webpack-cli -g
 ```
 
 4. 局部安装webpack（后续才需要）
@@ -1288,11 +1331,19 @@ npm install webpack@3.6.0 -g
 
 ```
 cd 对应目录
-npm install webpack@3.6.0 --save-dev
+npm install webpack@3.6.0 --save-dev  或者-D简写
+npm install webpack webpack-cli
+```
+
+5. 生成package.json(管理记录项目包依赖)
+
+```
+npm init	  // 需要配置	
+npm init -y   // 无需配置直接生成
 ```
 
 - 为什么全局安装后，还需要局部安装呢？
-  - 在终端直接执行webpack命令，使用的全局安装的webpack
+  - 在终端直接执行webpack命令，使用的全局安装的webpack，全局安装的版本可能与不同项目的webpack版本不兼容
   - 当在package.json中定义了scripts时，其中包含了webpack命令，那么使用的是局部webpack
 
 ## webpack的基本使用
@@ -1309,6 +1360,70 @@ npm install webpack@3.6.0 --save-dev
 
 - index.html：浏览器打开展示的首页html
 - package.json：通过npm init生成的，npm包管理的文件（暂时没有用上，后面才会用上）
+
+打包命令
+
+注：npx webpack 和 npm run build打包命令默认是找项目目录下的src里的index.js作为入口文件来打包
+
+```
+webpack // 全局安装打包
+
+npx webpack // 局部安装打包
+
+"scripts": {
+	"build": "webpack"
+}
+npm run build // 更改package.json的脚本命令，用脚本命令打包
+
+npx webpack --entry ./src/main.js --output-path ./dist 
+// 指定打包入口文件出口文件
+```
+
+## webpack配置
+
+在项目根目录下新建配置文件：`webpack.config.js`
+
+Webpack 是基于 Node.js 运行的，所以导入导出采用 Common.js 模块化规范
+
+```javascript
+// Node.js的核心模块，专门用来处理文件路径
+const path = require("path");
+
+module.exports = {
+  // 入口
+  // 相对路径和绝对路径都行
+  entry: "./src/main.js",
+  // 输出
+  output: {
+    // path: 文件输出目录，必须是绝对路径
+    // path.resolve()方法返回一个绝对路径
+    // __dirname 当前文件的文件夹绝对路径
+    path: path.resolve(__dirname, "dist"),
+    // filename: 输出文件名
+    filename: "main.js",
+  },
+  // 加载器
+  module: {
+    rules: [
+        {
+            test: /\.css$/,	// 正则表达式
+        //  loader: "css-loader" // css-loader只负责解析css不会插入html还需要style-loader
+            use: [
+                "style-loader",
+                "css-loader"
+            ] // 从下往上执行
+        }
+    ],
+  },
+  // 插件
+  plugins: [],
+  // 模式
+  mode: "development", // 开发模式
+};
+
+```
+
+此时功能和之前一样，也不能处理样式资源
 
 
 
@@ -1468,7 +1583,7 @@ export default router  //导出路由实例
 
 
 
-### 使用
+### 使用66
 
 1. 创建路由组件
 2. 导出路由组件
