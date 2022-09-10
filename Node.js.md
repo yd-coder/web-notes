@@ -199,6 +199,7 @@ fs.writeFile(file, data, [options], callback)
 - `data`：写入内容
 - `options`：配置选项，包含 `encoding, mode, flag`；若是字符串则指定编码格式
 - `callback`：回调函数(参数err如果写入成功err为null，写入失败err为错误对象)
+- 注：写入数据的类型必须是字符串或buffer二进制数据 ，对象等数据写入后，接收的是数据类型
 
 ```js
 const fs = require('fs')
@@ -793,6 +794,7 @@ app.listen(80, function () {
 - `express.urlencoded` 解析 URL-encoded 格式的请求体数据（有兼容性，仅在 4.16.0+ 版本中可用）
 
 ```js
+// 放在路由前面
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 ```
@@ -872,6 +874,43 @@ res.setHEader('Access-Control-Allow-Methods', '*')
 在浏览器与服务器正式通信之前，浏览器会先发送 OPTION 请求进行预检，以获知服务器是否允许该实际请求，所以这一次的 OPTION 请求称为“预检请求”。服务器成功响应预检请求后，才会发送真正的请求，并且携带真实数据
 
 
+
+
+
+## 搭建node.js后端环境
+
+1. 全局命令安装express：
+
+```
+npm install express-generator -g
+```
+
+2. 进入项目目录express命令生成serve文件夹：
+
+```
+express --view=ejs server
+```
+
+3. 进入serve目录安装依赖
+
+```
+npm install
+```
+
+4. 重启node环境
+
+```
+npm start
+```
+
+5. 默认端口3000
+6. 前端请求node接口
+
+手机电脑同一个wifi
+
+不能使用localhost，用ip地址
+
+注：遇到缺少moudles的保错，即引用的第三方库未安装，npm install安装即可
 
 
 

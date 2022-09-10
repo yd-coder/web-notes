@@ -298,6 +298,13 @@ npm install
 npm start
 ```
 
+5. 默认端口3000
+6. 前端请求node接口
+
+手机电脑同一个wifi
+
+不能使用localhost，用ip地址
+
 注：遇到缺少moudles的保错，即引用的第三方库未安装，npm install安装即可
 
 

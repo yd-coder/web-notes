@@ -84,7 +84,7 @@ export default defineConfig({
 })
 ```
 
-配置完成之后使用ref reactive watch 等无须 import 导入可以直接使用 
+配置完成之后使用ref reactive watch hooks等无须 import 导入可以直接使用 
 
 
 
@@ -1231,13 +1231,74 @@ Component that was made reactive:
 修改如下
 
 ```ts
-const tab = reactive<Com[]>([{
-    name: "A组件",
-    comName: markRaw(A)
-}, {
-    name: "B组件",
-    comName: markRaw(B)
-}])
+<template>
+    <div class="content">
+        <div class="tab"
+         :class="current.comName==item.comName?'bg-red':''"
+          @click="selectactive(item)" v-for="item  in data" 
+         :key="item.name">{{item.name}}</div>
+    </div>
+      <component :is="current.comName" ></component>
+
+</template>
+
+<script setup lang="ts">
+import  {reactive ,markRaw} from 'vue'
+import  A from './A.vue'
+import  B from './B.vue'
+import  C from './C.vue' 
+type Tabs={
+    name:string,
+    comName:any
+}
+const  data=reactive<Tabs[]>([
+    {
+        name:'我是A组件',
+        comName:markRaw(A)
+    },
+       {
+        name:'我是B组件', 
+        comName:markRaw(B)
+
+    },
+       {
+        name:'我是C组件',
+        comName:markRaw(C) 
+    },
+])
+// 设置默认选中
+let  current=reactive({
+    comName:data[0].comName
+})
+// 点击切换事件
+const selectactive=(item:Tabs)=>{
+current.comName=item.comName;
+}
+</script>
+
+<style scoped lang="less">
+.bg-red{
+    background: red;
+}
+.content{
+    flex: 1;
+     display: flex;
+    margin: 20px;
+    border-bottom: 1px solid #ccc;
+    overflow: auto;
+    &-items{
+        padding:20px;border-bottom: 1px solid #ffffff;
+    }
+     .tab{
+         height: 50px;
+        border:1px solid red;
+     }
+     component{
+         height: 30px;;
+     }
+}
+</style>
+
 ```
 
 ## 异步组件
