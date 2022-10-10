@@ -1942,6 +1942,50 @@ console.log(JC(3));//3*2*1
 
 ## 对象浅拷贝
 
+### 直接赋值型
+
+```js
+var userName = 'Maic';
+var age = 18;
+var userInfo = {
+  name: 'Maic',
+  age: 18,
+  fav: {
+    play1: 'ping pang',
+    play2: 'basket ball'
+  }
+}
+
+var cacheUserName = userName;
+var cacheAge = age;
+// 对象值拷贝
+var cacheUserInfo = userInfo;
+cacheUserName = 'Tom';
+cacheAge = 20;
+cacheUserInfo.name = 'jake';
+cacheUserInfo.age = 10;
+cacheUserInfo.fav.play1 = 'swim';
+
+console.log(userName, age, userInfo, '------', cacheUserName, cacheAge, cacheUserInfo);
+```
+
+然后运行`node index.js`从执行结果上来看
+
+
+
+```js
+Maic 18 { name: 'jake', age: 10, fav: { play1: 'swim', play2: 'basket ball' } } 
+------
+Tom 20 { name: 'jake', age: 10, fav: { play1: 'swim', play2: 'basket ball' } }
+```
+
+因此可以得出结论
+
+- 基础数据类型的赋值，是值的拷贝，会重新开辟一个栈空间，新拷贝的值修改不会影响原有数据类型
+- 引用数据类型的赋值，原有引用数据与新赋值的数据指向的是同一份地址，修改引用数据的属性会影响原来的
+
+### Object.assign型
+
 > 浅拷贝只是拷贝一层，更深层次对象级别的拷贝只拷贝地址
 >
 > 只拷贝了地址，修改obj，q也会被修改，Object.assign只有对象第一层的数值是深拷贝，第一层往下只拷贝了地址
@@ -1960,6 +2004,42 @@ q.name = '小明';//第一层为深拷贝，所以修改后不会影响obj
 q.fn.id = 1;//第二层为浅拷贝，所以修改后会影响obj
 console.log(obj);//{ name: '浅拷贝', fn: { id: 1 } }
 ```
+
+### 对象扩展型
+
+```js
+...
+// 对象浅拷贝
+var cacheUserInfo = { ...userInfo }
+// 与下面等价
+// var cacheUserInfo = Object.assign({}, userInfo);
+// 修改值拷贝后值
+cacheUserName = 'Tom';
+cacheAge = 20;
+cacheUserInfo.name = 'jake';
+cacheUserInfo.age = 10;
+cacheUserInfo.fav.play1 = 'swim';
+
+console.log(userName, age, userInfo, '------', cacheUserName, cacheAge, cacheUserInfo);
+```
+
+我使用了`es6`对象扩展对原有对象进行拷贝，那么此时结果是怎么样
+
+
+
+```js
+Maic 18 { name: 'Maic', age: 18, fav: { play1: 'swim', play2: 'basket ball' } }
+------ 
+Tom 20 { name: 'jake', age: 10, fav: { play1: 'swim', play2: 'basket ball' } }
+```
+
+不知道注意到没有，在引用数据类型的第一级如果这个属性是基础数据类型，那么修改并不会影响原有的值，如果属性是引用数据类型，那么这层结构会是一个值拷贝，修改新赋值属性，会影响到原有的对象属性
+
+
+
+
+
+
 
 ## 对象深拷贝
 

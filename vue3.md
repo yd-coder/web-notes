@@ -22,6 +22,44 @@
 >
 > vue2中引入组件需要导入，注册
 
+
+
+## 使用ref访问子组件
+
+在`Vue2`中，使用`ref`即可访问子组件里的任意数据及方法，但在`Vue3`中则必须使用`defineExpose`暴露子组件内的方法或属性才能被父组件所调用。
+
+```vue
+// 父组件
+<template>
+  <child ref="childRef" />
+</template>
+
+<script lang="ts" setup>
+import { ref, onMounted } from 'vue'
+
+const childRef = ref()
+
+onMounted(() => {
+  childRef.value.getData()
+})
+</script>
+
+// 子组件
+<script lang="ts" setup>
+import { defineExpose } from 'vue'
+
+const getData = () => {
+  console.log('getData')
+}
+const name = ref('张三')
+
+defineExpose({
+  getData,
+  name
+})
+</script>
+```
+
 ## 生命周期
 
 > 在我们使用Vue3组合式API是没有 `beforeCreate` 和 `created `这两个生命周期的
