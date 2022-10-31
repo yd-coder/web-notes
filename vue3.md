@@ -2732,6 +2732,289 @@ npm i -D @iconify-json/图标库名
 
 
 
+# Vue开发桌面程序Electron
+
+>  electron 内置了 Chromium 和 nodeJS 其中 Chromium 是渲染进程 主要渲染和解析HTML，Nodejs作为主进程，其中管道用IPC 通信
+
+## 1.使用vite 构建 electron项目
+
+创建一个vite 项目
+
+```
+npm init vite@latest
+```
+
+![img](https://img-blog.csdnimg.cn/ca896e7502084f3dbb04f36301e3717f.png)
+
+安装electron
+
+```
+npm install electron -D
+npm install vite-plugin-electron -D
+```
+
+ 根目录新建 electron / index.ts
+
+![img](https://img-blog.csdnimg.cn/40a06d3347e84cce85c66b1202da81d2.png)
+
+修改vite.config.ts 配置文件
+
+引入electron插件配置main entry对应electron的文件
+
+```typescript
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import electron from 'vite-plugin-electron'
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [vue(), electron({
+    main: {
+      entry: "electron/index.ts"
+    }
+  })]
+})
+```
+
+![img](https://img-blog.csdnimg.cn/d66b35a9ab9f472f89332d2c34b61e44.png)
+
+编写代码 electron / index.ts
+
+```typescript
+import { app, BrowserWindow } from 'electron'
+import path from 'path'
+//app 控制应用程序的事件生命周期。
+//BrowserWindow 创建并控制浏览器窗口。
+ 
+let win: BrowserWindow | null;
+//定义全局变量获取 窗口实例
+ 
+const createWindow = () => {
+    win = new BrowserWindow({
+        //
+        webPreferences: {
+            devTools: true,
+            contextIsolation: false,
+            nodeIntegration: true
+            //允许html页面上的javascipt代码访问nodejs 环境api代码的能力（与node集成的意思）
+        }
+    })
+    if (app.isPackaged) {
+        win.loadFile(path.join(__dirname, "../index.html"));
+    } else {
+//VITE_DEV_SERVER_HOST 如果是undefined 换成  VITE_DEV_SERVER_HOSTNAME
+        win.loadURL(`http://${process.env['VITE_DEV_SERVER_HOST']}:${process.env['VITE_DEV_SERVER_PORT']}`)
+    }
+}
+//isPackage 不好使换下面的
+  //  if(process.env.NODE_ENV != 'development'){
+      //  win.loadFile(path.join(__dirname, "../index.html"));
+  //  }else{
+        //win.loadURL(`http://${process.env['VITE_DEV_SERVER_HOSTNAME']}:${process.env['VITE_DEV_SE//RVER_PORT']}`)
+   // }
+//在Electron完成初始化时被触发
+app.whenReady().then(createWindow)
+```
+
+配置package.json增加`main`字段`type 去掉`
+
+```typescript
+{
+  "name": "electron-vite",
+  "private": true,
+  "version": "0.0.0",
+  "main": "dist/electron/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build  &&  electron-builder",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.2.37"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^3.0.0",
+    "electron": "^19.0.10",
+    "electron-builder": "^23.1.0",
+    "typescript": "^4.6.4",
+    "vite": "^3.0.0",
+    "vite-plugin-electron": "^0.8.3",
+    "vue-tsc": "^0.38.4"
+  }
+}
+```
+
+npm run dev
+
+![img](https://img-blog.csdnimg.cn/b28dd412c1ef45209e88a6face2110b7.png)
+
+
+
+## 2.打包Electron
+
+需要安装electron-builder
+
+```coffeescript
+npm install electron-builder -D
+```
+
+package json 配置 build 修改npm run build命令
+
+```javascript
+"build": "vue-tsc --noEmit && vite build  &&  electron-builder",
+  "build": {
+    "appId": "com.electron.desktop",
+    "productName": "electron",
+    "asar": true,
+    "copyright": "Copyright © 2022 electron",
+    "directories": {
+      "output": "release/"
+    },
+    "files": [
+      "dist"
+    ],
+    "mac": {
+      "artifactName": "${productName}_${version}.${ext}",
+      "target": [
+        "dmg"
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}_${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "http://127.0.0.1:8080"
+      }
+    ],
+    "releaseInfo": {
+      "releaseNotes": "版本更新的具体内容"
+    }
+  }
+```
+
+nsis 配置详解 
+
+```json
+{"oneClick": false, // 创建一键安装程序还是辅助安装程序（默认是一键安装）
+    "allowElevation": true, // 是否允许请求提升，如果为false，则用户必须使用提升的权限重新启动安装程序 （仅作用于辅助安装程序）
+    "allowToChangeInstallationDirectory": true, // 是否允许修改安装目录 （仅作用于辅助安装程序）
+    "installerIcon": "public/timg.ico",// 安装程序图标的路径
+    "uninstallerIcon": "public/timg.ico",// 卸载程序图标的路径
+    "installerHeader": "public/timg.ico", // 安装时头部图片路径（仅作用于辅助安装程序）
+    "installerHeaderIcon": "public/timg.ico", // 安装时标题图标（进度条上方）的路径（仅作用于一键安装程序）
+    "installerSidebar": "public/installerSiddebar.bmp", // 安装完毕界面图片的路径，图片后缀.bmp，尺寸164*314 （仅作用于辅助安装程序）
+    "uninstallerSidebar": "public/uninstallerSiddebar.bmp", // 开始卸载界面图片的路径，图片后缀.bmp，尺寸164*314 （仅作用于辅助安装程序）
+    "uninstallDisplayName": "${productName}${version}", // 控制面板中的卸载程序显示名称
+    "createDesktopShortcut": true, // 是否创建桌面快捷方式
+    "createStartMenuShortcut": true,// 是否创建开始菜单快捷方式
+    "shortcutName": "SHom", // 用于快捷方式的名称，默认为应用程序名称
+    "include": "script/installer.nsi",  // NSIS包含定制安装程序脚本的路径，安装过程中自行调用  (可用于写入注册表 开机自启动等操作)
+    "script": "script/installer.nsi",  // 用于自定义安装程序的NSIS脚本的路径
+    "deleteAppDataOnUninstall": false, // 是否在卸载时删除应用程序数据（仅作用于一键安装程序）
+    "runAfterFinish": true,  // 完成后是否运行已安装的应用程序（对于辅助安装程序，应删除相应的复选框）
+    "menuCategory": false, // 是否为开始菜单快捷方式和程序文件目录创建子菜单，如果为true，则使用公司名称
+}
+```
+
+npm run build
+
+![img](https://img-blog.csdnimg.cn/16969184f40d45cf8a3043a11e7281d3.png)
+
+ ![img](https://img-blog.csdnimg.cn/7256d03f7d61424f854dfc458ecb16bc.png)
+
+ ![img](https://img-blog.csdnimg.cn/6018356cd0b94f4bb098da0c23ac6ace.png)
+
+##  3.Electron Vscode 输出乱码解决 方案
+
+dev 的时候 加上chcp 65001 输出中文
+
+```
+ "dev": "chcp 65001 && vite",
+```
+
+![img](https://img-blog.csdnimg.cn/2458dd6785a349f097eca043eb59766c.png)
+
+加上之后
+
+![img](https://img-blog.csdnimg.cn/22d38f77131248da83fb9bbc25b47512.png)
+
+##  4.渲染进程和主进程通信
+
+vite.config.ts 需要修改 不然会报一个错Error: Module "path" has been externalized for browser compatibility. Cannot
+
+只要安装了 vite-plugin-electron 就会带上 vite-plugin-electron-renderer 直接引入用就行
+
+```typescript
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import electron from 'vite-plugin-electron'
+import electronRender from 'vite-plugin-electron-renderer'
+
+// https://vitejs.dev/config/
+
+export default defineConfig({
+    
+  plugins: [vue(), electron({
+    main: {
+      entry: "electron/index.ts"
+    }
+  }),electronRender()],
+  build:{
+    emptyOutDir: false,
+  }
+})
+```
+
+渲染进程使用ipcRenderer 发送
+
+```javascript
+import { ipcRenderer } from 'electron'
+
+const open = () => {
+     ipcRenderer.send('openFlyCar')
+}
+```
+
+主进程使用 ipcMain 接受
+
+```javascript
+ipcMain.on('openFlyCar',()=>{
+    console.log('收到')
+})
+```
+
+主进程通知渲染进程
+
+```javascript
+const  win = new BrowserWindow(xxxxx)
+win!.webContents.send('load', { message: "electron初始化了" })
+```
+
+渲染进程接受
+
+```javascript
+ipcRenderer.on('load',(_,data)=>{
+  console.log(data)
+})
+```
+
+
+
 # Pinia
 
 Pinia.js 有如下特点：
@@ -3946,7 +4229,7 @@ yarn create vite
 4. css样式可以直接解析(webpack需要css-loader,style-loader)
 
 4. less,sass预处理器可以安装后直接解析(webpack需要less-loader)
-5. postcss浏览器前缀插件不需要配置安装即用
+5. postcss、浏览器前缀插件不需要配置安装即用
 6. ts语法可以解析(webpack需要bable)
 
 
