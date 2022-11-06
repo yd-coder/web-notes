@@ -265,24 +265,25 @@ tsconfig.json是一个JSON文件，添加配置文件后，只需只需 tsc 命�
   - 在compilerOptions中包含多个子选项，用来完成对编译的配置
 
 项目选项：
+
   - target
-  
+
     - 设置ts代码编译的目标版本
-    
+
     - 可选值：
-      
+
       - ES3（默认）、ES5、ES6/ES2015、ES7/ES2016、ES2017、ES2018、ES2019、ES2020、ESNext
-      
+
     - 示例：
-    
+
       - ```json
         "compilerOptions": {
             "target": "ES6"
         }
         ```
-      
+
     - 如上设置，我们所编写的ts代码将会被编译为ES6版本的js代码
-    
+
   - lib
 
     - 指定代码运行时所包含的库（宿主环境）
@@ -573,11 +574,11 @@ module.exports = {
 共安装了4个包，分别是：
 
   - @babel/core：babel的核心工具
-  
+
   - @babel/preset-env：babel的预定义环境
-  
+
   - @babel-loader：babel在webpack中的加载器
-  
+
   - core-js：core-js用来使老版本的浏览器支持新版ES语法
 
 修改webpack.config.js配置文件
@@ -740,7 +741,7 @@ class X extends A {
 默认情况下，对象的属性是可以任意的修改的，为了确保数据的安全性，在TS中可以对属性的权限进行设置
 
   - 静态属性（static）：
-    
+
     - 声明为static的属性或方法不再属于实例，而是属于类的属性；
 
   - 只读属性（readonly）：
@@ -1034,6 +1035,7 @@ class Student implements Person{
     }
 }
  ```
+
  # 泛型（Generic）
 
 定义一个函数或类时，有些情况下无法确定其中要使用的具体类型（返回值、参数、属性的类型不能确定）；
@@ -1054,9 +1056,9 @@ function test(arg: any): any{
 
 首先使用any会关闭TS的类型检查，其次这样设置也不能体现出参数和返回值是相同的类型；
 
-## 泛型函数
 
-### 创建泛型函数
+
+## 创建泛型函数
 
 ```typescript
 function test<T>(arg: T): T{
@@ -1072,7 +1074,7 @@ T是我们给这个类型起的名字（不一定非叫T），设置泛型后即
 
 那么如何使用上边的函数呢？
 
-### 使用泛型函数
+## 使用泛型函数
 
 ##### 方式一（直接使用）：
 
@@ -1090,7 +1092,7 @@ test<number>(10)
 
 也可以在函数后手动指定泛型；
 
-### 函数中声明多个泛型
+## 函数中声明多个泛型
 
 可以同时指定多个泛型，泛型间使用逗号隔开：
 
@@ -1104,7 +1106,7 @@ test<number, string>(10, "hello");
 
 使用泛型时，完全可以将泛型当成是一个普通的类去使用；
 
-### 泛型类
+## 泛型类
 
 类中同样可以使用泛型：
 
@@ -1118,9 +1120,9 @@ class MyClass<T>{
 }
 ```
 
-### 泛型继承
+## 泛型的类型约束
 
-除此之外，也可以对泛型的范围进行约束
+除此之外，也可以用extends对泛型的范围进行约束
 
 ```typescript
 interface MyInter{
@@ -1130,6 +1132,109 @@ interface MyInter{
 function test<T extends MyInter>(arg: T): number{
   return arg.length;
 }
+
+test("abc")
+test(["abc"])
+test({length: 1})
 ```
 
-使用T extends MyInter表示泛型T必须是MyInter的子类，不一定非要使用接口类和抽象类同样适用；
+使用T extends MyInter表示泛型T必须是MyInter的子类，不一定非要使用接口，类和抽象类同样适用；
+
+
+
+
+
+# type和interface区别
+
+我们会发现interface和type都可以用来定义对象类型，那么在开发中定义对象类型时，到底选择哪一个呢？
+
+- 如果是定义非对象类型，通常推荐使用type，比如联合类型，交叉类型，Function
+
+如果是定义对象类型，那么他们是有区别的：
+
+- interface可以重复的对某个接口来定义属性和方法
+- 而type定义的是别名，别名是不能重复的
+
+```typescript
+interface IPerson {
+    name: string
+}
+
+interface IPerson {
+    age: number
+}
+
+let man: IPerson ={
+    name: '小明',
+    age: 20
+} 
+```
+
+
+
+# 枚举(enum)
+
+枚举类型是为数不多的TypeScript特性有的特性之一:
+
+- 一个枚举类型可以包含零个或多个枚举成员。 枚举成员具有一个数字值，它可以是*常数*或是*计算得出的值* 当满足如下条件时，枚举成员被当作是常数：
+
+- 不具有初始化函数并且之前的枚举成员是常数。 在这种情况下，当前枚举成员的值为上一个枚举成员的值加1。 但第一个枚举元素是个例外。 如果它没有初始化方法，那么它的初始值为`0`。
+
+- 枚举成员使用
+
+  常数枚举表达式
+
+  初始化。 常数枚举表达式是TypeScript表达式的子集，它可以在编译阶段求值。 当一个表达式满足下面条件之一时，它就是一个常数枚举表达式：
+
+  - 数字字面量
+  - 引用之前定义的常数枚举成员（可以是在不同的枚举类型中定义的） 如果这个成员是在同一个枚举类型中定义的，可以使用非限定名来引用。
+  - 带括号的常数枚举表达式
+  - `+`, `-`, `~` 一元运算符应用于常数枚举表达式
+  - `+`, `-`, `*`, `/`, `%`, `<<`, `>>`, `>>>`, `&`, `|`, `^` 二元运算符，常数枚举表达式做为其一个操作对象。 若常数枚举表达式求值后为`NaN`或`Infinity`，则会在编译阶段报错。
+
+枚举是在运行时真正存在的一个对象。 其中一个原因是因为这样可以从枚举值到枚举名进行反向映射。
+
+```typescript
+enum Enum {
+    A
+}
+let a = Enum.A;
+let nameOfA = Enum[a]; // "A"
+```
+
+
+
+# 类型声明(declare)
+
+1. 内置类型声明typescript
+
+2. 引入外部声明文件
+
+   npm install @types/... [声明文件集合](https://www.typescriptlang.org/dt/search?search=)
+
+3. 自定义声明文件
+
+   .d.ts
+
+   ```typescript
+   // 声明模块
+   declare module 'lodash' {
+       export function join(arr: any[]):void
+   }
+   // 声明变量/函数/类
+   declare let name: string
+   declare function Foo():void
+   declare class Person {
+       name: string
+       age: number
+       constructor(name: string,age: number)
+   }
+   // 声明文件
+   declare module '*.jpg'
+   // 声明命名空间
+   declare namespace $ {
+       export function ajax(settings: any):any
+   }
+   ```
+
+   
