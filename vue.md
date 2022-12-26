@@ -2800,3 +2800,110 @@ const BASE_URL = process.env.NODE_ENV === "production" ? "/supermall/" : "/";
 ```
 
 2. 如果 vue 项目设置的是 history 路由模式，由于只有一个 `index.html` 主页面，所以每次访问非首页地址都会造成 404 。而在 [Github](https://so.csdn.net/so/search?q=Github&spm=1001.2101.3001.7020) pages 里不能这样做，只能借助 `404.html` ，当 Github pages 找不到页面时会自动寻找根目录下的 `404.html` 文件，那我们多拷贝一份与 `index.html` 相同的文件命名为 `404.html` 即可解决这个问题。
+
+
+
+
+
+# Github Pages部署
+
+## github pages基础用法
+
+### 1. URL 规则
+
+假设你的 github 帐号为 mygithub，需要发布的仓库名为 myrepo，那么 pages 的 URL 为：
+
+https://mygithub.github.io/myrepo
+
+### 2. 添加内容
+
+用任意编辑器写好（或者生成）标准的网页内容，push 到 myrepo 即可。和大部分 web 服务一样，pages 会到指定目录里面寻找 index.html 作为网页入口。
+
+### 3. 通过选择分支激活 pages
+
+在仓库的设置界面，选择需要作为内容发布的分支，如下图：
+
+![img](https://img-blog.csdnimg.cn/e93bffb172b2407ba6b214145becde47.png)
+
+这里的分支选择、目录选择都是很巧妙的设计。主分支一般是放代码的，不会放 index.html 这样的网页内容。所以一个方案就是通过目录，把网页放到 docs 目录下。另外一个方案就是单独拉出一个分支来放网页内容，在这个分支下，可以把内容放到根目录。分支设计对下面要讲的通过 action 发布至关重要。
+
+那为啥不用两个仓库？原因在于：
+
+1. 因为你的酷毙了的开源项目已经有很多 star 了
+
+2. 你得想两个名字
+
+3. 增加了维护成本
+
+
+
+## 通过action发布
+
+这里以`vitepress`为例，你也可以选择任何工具。
+
+在项目的根目录下创建`.github/workflows/deploy.yml`
+
+其中`.github/workflows` 这两个目录的名字不能修改，`deploy.yml`文件则可以为任意的名字（后缀只能为 yml）。`deploy.yml` 的内容如下：
+
+```yaml
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: npm
+      - run: npm install
+
+      - name: Build
+        run: npm run docs:build
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/.vitepress/dist
+```
+
+这段代码的意思为：每当 main branch 有 push 的时候，在 ubuntu 机器上，通过搭建 node 环境，执行 vitepress 打包命令，并将 dist 下面的产出**提交**到 **gh-pages** 分支。若没有 gh-pages 分支，则**自动创建**该分支。
+
+具体操作步骤如下：
+
+1. 先不要管仓库里面的 pages 设置，也就是先不需要去激活 pages
+
+2. 编写好 yml 文件，并提交到主分支。（由于这里的例子为 vitepress，所以仓库的内容需要为一个 vitepress 项目）
+
+3. 等待 action 执行完成。如果成功，会发现仓库自动增加了一个新的分支，如下图：
+
+![img](https://img-blog.csdnimg.cn/34e657a04a9844b3af03fcca0f2e084c.png)
+
+其内容正是一个网页。
+
+4. 去仓库设置里面，激活 pages。注意，这时分支要选 gh-pages，而不是 main。目录为 root。
+
+![img](https://img-blog.csdnimg.cn/6a7a3fbc1ddf47b98c6318e94263d930.png)
+
+
+
+5. pages 发布的时候，会花费点时间，请耐心等待约 1-5 分钟。
+
+6. 通过打开 https://mygithub.github.io/myrepo 检查内容是否发布成功
+
+
+
+## vitepress注意事项
+
+1. 在 `docs/.vitepress/config.js`设置正确的`base`。
+
+   如果你想部署到 `https://<USERNAME>.github.io/`, 你可以省略这一步，因为 `base` 默认为 `'/'`。
+
+   如果你想部署到 `https://<USERNAME>.github.io/<REPO>/`, 比如你的仓库是 `https://github.com/<USERNAME>/<REPO>`, 那么需要设置`base` 为 `'/<REPO>/'`。

@@ -340,3 +340,163 @@ npm start
 
 
 
+# 分包
+
+## 分包配置
+
+因小程序有体积和资源加载限制，各家小程序平台提供了分包方式，优化小程序的下载和启动速度。
+
+所谓的主包，即放置默认启动页面/TabBar 页面，以及一些所有分包都需用到公共资源/JS 脚本；而分包则是根据pages.json的配置进行划分。
+
+在小程序启动时，默认会下载主包并启动主包内页面，当用户进入分包内某个页面时，会把对应分包自动下载下来，下载完成后再进行展示。此时终端界面会有等待提示。
+
+subPackages 节点接收一个数组，数组每一项都是应用的子包，其属性值如下：
+
+| 属性  | 类型   | 是否必填 | 描述                                                         |
+| :---- | :----- | :------- | :----------------------------------------------------------- |
+| root  | String | 是       | 子包的根目录                                                 |
+| pages | Array  | 是       | 子包由哪些页面组成，参数同 [pages](https://uniapp.dcloud.net.cn/collocation/pages.html#pages) |
+
+**注意：**
+
+- `subPackages` 里的pages的路径是 `root` 下的相对路径，不是全路径。
+- 微信小程序每个分包的大小是2M，总体积一共不能超过20M。
+- 百度小程序每个分包的大小是2M，总体积一共不能超过8M。
+- 支付宝小程序每个分包的大小是2M，总体积一共不能超过8M。
+- QQ小程序每个分包的大小是2M，总体积一共不能超过24M。
+- 字节小程序每个分包的大小是2M，总体积一共不能超过16M（字节小程序基础库 1.88.0 及以上版本开始支持，字节小程序开发者工具请使用大于等于 2.0.6 且小于 3.0.0 的版本）。
+- 快手小程序每个分包的大小是2M，总体积一共不能超过24M。
+- 分包下支持独立的 `static` 目录，用来对静态资源进行分包。
+- `uni-app`内支持对`微信小程序`、`QQ小程序`、`百度小程序`、`支付宝小程序`、`字节小程序(HBuilderX 3.0.3+)`、`快手小程序`分包优化，即将静态资源或者js文件放入分包内不占用主包大小。详情请参考：[关于分包优化的说明](https://uniapp.dcloud.net.cn/collocation/manifest#关于分包优化的说明)
+- 针对vendor.js过大的情况可以使用运行时压缩代码
+  - `HBuilderX`创建的项目勾选`运行-->运行到小程序模拟器-->运行时是否压缩代码`
+  - `cli`创建的项目可以在`package.json`中添加参数`--minimize`，示例：`"dev:mp-weixin": "cross-env NODE_ENV=development UNI_PLATFORM=mp-weixin vue-cli-service uni-build --watch --minimize"`
+
+**使用方法：**
+
+假设支持分包的 `uni-app` 目录结构如下：
+
+```
+┌─pages
+│  ├─index
+│  │  └─index.vue
+│  └─login
+│     └─login.vue
+├─pagesA
+│  ├─static
+│  └─list
+│     └─list.vue
+├─pagesB
+│  ├─static
+│  └─detail
+│     └─detail.vue
+├─static
+├─main.js
+├─App.vue
+├─manifest.json
+└─pages.json
+```
+
+则需要在 pages.json 中填写
+
+```javascript
+{
+	"pages": [{
+		"path": "pages/index/index",
+		"style": { ...}
+	}, {
+		"path": "pages/login/login",
+		"style": { ...}
+	}],
+	"subPackages": [{
+		"root": "pagesA",
+		"pages": [{
+			"path": "list/list",
+			"style": { ...}
+		}]
+	}, {
+		"root": "pagesB",
+		"pages": [{
+			"path": "detail/detail",
+			"style": { ...}
+		}]
+	}],
+	"preloadRule": {
+		"pagesA/list/list": {
+			"network": "all",
+			"packages": ["__APP__"]
+		},
+		"pagesB/detail/detail": {
+			"network": "all",
+			"packages": ["pagesA"]
+		}
+	}
+}
+```
+
+## preloadRule
+
+分包预载配置。
+
+配置preloadRule后，在进入小程序某个页面时，由框架自动预下载可能需要的分包，提升进入后续分包页面时的启动速度
+
+`preloadRule` 中，`key` 是页面路径，`value` 是进入此页面的预下载配置，每个配置有以下几项：
+
+| 字段     | 类型        | 必填 | 默认值 | 说明                                                         |
+| -------- | ----------- | ---- | ------ | ------------------------------------------------------------ |
+| packages | StringArray | 是   | 无     | 进入页面后预下载分包的 `root` 或 `name`。`__APP__` 表示主包。 |
+| network  | String      | 否   | wifi   | 在指定网络下预下载，可选值为：all（不限网络）、wifi（仅wifi下预下载） |
+
+app的分包，同样支持preloadRule，但网络规则无效。
+
+## 分包优化
+
+- 在`manifest.json`的源码视图中找对应平台的配置下添加`"optimization":{"subPackages":true}`开启分包优化
+- 目前只支持`mp-weixin`、`mp-qq`、`mp-baidu`、`mp-toutiao`、`mp-kuaishou`的分包优化
+- 分包优化具体逻辑：
+  - 静态文件：分包下支持 static 等静态资源拷贝，即分包目录内放置的静态资源不会被打包到主包中，也不可在主包中使用
+  - js文件：当某个 js 仅被一个分包引用时，该 js 会被打包到该分包内，否则仍打到主包（即被主包引用，或被超过 1 个分包引用）
+  - 自定义组件：若某个自定义组件仅被一个分包引用时，且未放入到分包内，编译时会输出提示信息
+
+**分包内静态文件示例**
+
+pages.json
+
+```json
+"subPackages": [{
+	"root": "pages/sub",
+	"pages": [{
+		"path": "index/index"
+	}]
+}]
+```
+
+以上面的分包为例，放在每个分包root对应目录下的静态文件会被打包到此分包内。
+
+
+
+# 微信登录
+
+1. 调uni.login
+
+   ```js
+   uni.login({
+   	provider: 'weixin',
+   	success: (res) => {
+   	// 获取 code
+   		if (res.code) {
+              // 请求后端登录接口
+           }
+       }
+   })
+   ```
+
+2. 然后需要把uni.login返回的code码传递给后端
+
+   ​	(一般后端接收code后会调微信官方的code2Session接口获取用户信息，再查询数据库user表判断用户是登录还是未注册去注册)
+
+3. 根据请求后端登录接口返回的状态码来判断用户是登录成功还是未注册去注册
+
+4. 如果返回状态码200表示用户登录成功，需要把后端返回的token存起来，再判断用户是否绑定手机号；
+
+   如果返回状态码60003表示未注册，需要再请求后端注册接口；

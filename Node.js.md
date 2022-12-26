@@ -331,6 +331,38 @@ fs.readFile(path.join(__dirname, './files/1.txt'), 'utf8', function (err, dataSt
 })
 ```
 
+## 路径拼接path.resolve()
+
+```js
+const path = require('path')
+path.resolve(__dirname, 'src')
+```
+
+## 两者区别
+
+以几个示例做总结：
+
+**无参数时**
+
+```js
+path.resolve() // 返回当前工作目录，相当于 `process.cwd()`，是绝对路径。
+path.join() // 返回 `.`（当前目录），是相对路径。
+```
+
+**有多个参数，且中间参数以 `/` 开头**
+
+```js
+path.resolve('/a', '/b', 'c') // 返回 `/b/c`，绝对路径。
+path.join('/a', '/b', 'c') // 返回 `/a/b/c`，绝对路径。
+```
+
+```js
+path.resolve('a', '/b', 'c') // 返回 `/b/c`，绝对路径。
+path.join('a', '/b', 'c') // 返回 `a/b/c`，相对路径。
+```
+
+
+
 ## 获取路径文件名path.basename()
 
 使用 `path.basename()` 方法，可以获取路径中的最后一部分，常通过该方法获取路径中的文件名

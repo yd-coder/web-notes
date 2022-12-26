@@ -4234,6 +4234,48 @@ yarn create vite
 
 
 
+# pnpm
+
+- 支持monorepo 单一仓库, 当前项目只能使用当前项目的包, 不可使用其依赖依赖的包
+
+- ##### 使用pnpm, 依赖包将被存放在一个统一的位置
+
+- **硬链接 (安装包时启用)**: 多个文件夹平等的共享同一个存储单元 (就算删除其中一个,仍可通过其他文件夹访问)
+
+- 软链接: 其他文件或目录的引用
+
+- mklink /H new source
+
+- 跨磁盘会报警告 ==cross-device link not permitted==, 包存储应与安装的位置处于同一驱动器和文件系统上，否则，包将被复制，而不是被链接。 这是由于硬链接的工作方式带来的一个限制，因为一个文件系统上的文件无法寻址另一个文件系统中的位置。
+
+- **项目所在磁盘要和pnpm存储所在磁盘一致！就是说如果您在磁盘 `A` 上执行 `pnpm install`，则 pnpm 存储必须位于磁盘 `A`。 如果 pnpm 存储位于磁盘 `B`，则所有需要的包将被直接复制到项目位置而不是链接。 这个严重的抑制了 pnpm 的存储和性能优势。**
+
+### 安装pnpm
+
+```
+npm install -g pnpm
+
+config get registry
+
+pnpm set registry https://registry.npm.taobao.org 
+
+# https://registry.npmjs.org/
+pnpm config set store-dir E:/.pnpm-store  # 修改默认仓库地址
+
+pnpm store path  # 获取包仓库地址（pnpm的仓库不能跨磁盘）
+pnpm store prune  # 从store中删除当前未被(硬连接)引用的包来释放store的空间
+比较
+```
+
+| npm命令            | pnpm等价命令              |
+| ------------------ | ------------------------- |
+| npm install        | pnpm install 安装全部依赖 |
+| npm install 包名   | pnpm add (-D) 包名        |
+| npm uninstall 包名 | pnpm remove 包名          |
+| npm run 脚本       | pnpm 脚本                 |
+
+
+
 # Nvm
 
 ## 介绍
