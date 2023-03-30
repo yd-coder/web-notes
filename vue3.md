@@ -98,7 +98,7 @@ let p = new Proxy(person, {
 
 # Vue3自动引入插件
 
-
+## unplugin-auto-import
 
 1. 安装
 
@@ -116,17 +116,44 @@ import AutoImport from 'unplugin-auto-import/vite'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue(),VueJsx(),AutoImport({
-    imports:['vue'],
-    dts:"src/auto-import.d.ts"
+    imports:['vue','@vueuse/core'],
+    dts:"types/auto-import.d.ts",
+    eslintrc:{
+        enabled:true,
+        filepath:'./.eslintrc-auto-import.json',
+        globalsPropValue:true
+    }
+   // 生成的'./.eslintrc-auto-import.json'要在.eslintrc.cjs中继承一下
   })]
 })
 ```
 
 配置完成之后使用ref reactive watch hooks等无须 import 导入可以直接使用 
 
+## unplugin-vue-components
 
+1. 安装
 
+```
+npm i -D unplugin-vue-components
+```
 
+2. vite.config.js配置
+
+```ts
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import VueJsx from '@vitejs/plugin-vue-jsx'
+import components from 'unplugin-vue-components/vite'
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [vue(),VueJsx(),components({
+      dirs:['src/components/'],dts:'types/components.d.ts',deep:true
+  })]
+})
+```
+
+配置完成之后会自动递归src/components下的组件生成声明文件，所有组件都可以全局使用
 
 # 生命周期
 
@@ -2153,7 +2180,8 @@ Vue2 指令 bind inserted update componentUpdated unbind
   <Dialog  v-move="{background:'green',flag:show}"></Dialog>
 </template>
  
-<script>
+<script setup lang='ts'>
+import { Directive } from "vue";
 const vMoveDirective: Directive = {
   created: () => {
     console.log("初始化====>");

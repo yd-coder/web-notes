@@ -262,11 +262,139 @@ uni.previewImage({
 
 # 导航守卫路由拦截
 
+> 前提：uni-app不像在vue中的router一样，可以配置导航守卫的功能，所以内置没有的话就需要我们自己想办法，可以写自定义封装的tabbar，通过if else判断跳转页面，但是一般我们会借助第三方插件去用。
+>
+> 注：微信小程序原生tabbar也不能使用uniapp的路由拦截，得换成自定义tabbar
+>
+> 参考链接： https://hhyang.cn/v2/start/quickstart.html 
+
+下面详细说一下：uni-simple-router的使用（这里的版本采用2.x了）
+
+### 一、执行安装命令
+
+```perl
+npm install uni-simple-router
+npm install uni-read-pages
+```
+
+**千万看一下是否安装成功了，如果没安装成功建议采用cnpm**
+
+### 二、在项目根目录新建vue.config.js文件
+
+```javascript
+//vue.config.js
+const TransformPages = require('uni-read-pages')
+const {webpack} = new TransformPages()
+module.exports = {
+	configureWebpack: {
+		plugins: [
+			new webpack.DefinePlugin({
+				ROUTES: webpack.DefinePlugin.runtimeValue(() => {
+					const tfPages = new TransformPages({
+						includes: ['path', 'name', 'aliasPath']
+					});
+					return JSON.stringify(tfPages.routes)
+				}, true )
+			})
+		]
+	}
+}
+```
+
+### 三、在项目根目录新建router.js文件
+
+```javascript
+// router.js
+import {RouterMount,createRouter} from 'uni-simple-router';
+
+const router = createRouter({
+	platform: process.env.VUE_APP_PLATFORM,  
+	routes: [...ROUTES]
+});
+//全局路由前置守卫
+router.beforeEach((to, from, next) => {
+	next();
+});
+// 全局路由后置守卫
+router.afterEach((to, from) => {
+    console.log('跳转结束')
+})
+
+export {
+	router,
+	RouterMount
+}
+```
+
+### 四、在main.js文件中导入插件
+
+```javascript
+// main.js
+import Vue from 'vue'
+import App from './App'
+import {router,RouterMount} from './router.js'  //路径换成自己的
+Vue.use(router)
+
+App.mpType = 'app'
+const app = new Vue({
+    ...App
+})
+
+//v1.3.5起 H5端 你应该去除原有的app.$mount();使用路由自带的渲染方式
+// #ifdef H5
+	RouterMount(app,router,'#app')
+// #endif
+
+// #ifndef H5
+	app.$mount(); //为了兼容小程序及app端必须这样写才有效果
+// #endif
+```
+
+**然后去运行项目，运行中可能会出现报错，比如：ROUTES找不到的问题，解决办法就是重启一下项目就好了**
 
 
-> 原生的uniapp的pages.json文件中配置的tabbar不支持路由拦截，完成不了未登录拦截路由的需求，所以得写自定义封装的tabbar，通过if else判断跳转页面
+
+### 五、使用插件跳转页面和导航守卫
+
+```kotlin
+this.$Router.push('/pages/news/news') //这个和vue基本类似了
+```
+
+全局和路由导航守卫都可以在：router.js文件中进行配置
+
+```javascript
+// router.js
+import {RouterMount,createRouter} from 'uni-simple-router';
 
 
+const router = createRouter({
+	platform: process.env.VUE_APP_PLATFORM,  
+	routes: [
+		{
+			path: "/",
+			beforeEnter:(to,from,next)=>{
+				console.log( 11 )
+				next({name:'router3',params:{msg:'我是从router2路由拦截过来的'}});
+			}
+		}, 
+		{
+			path: "/pages/news/news",
+			beforeEnter:(to,from,next)=>{
+				if( true ){
+					next('/')
+				}
+				next();
+			}
+		}
+		
+	]
+});
+
+export {
+	router,
+	RouterMount
+}
+```
 
 
 
@@ -339,6 +467,35 @@ npm start
 ```
 
 
+
+# svg引入
+
+
+
+最近在做一个需求，logo等png小图片在部分设备下会变糊，又不想做大图来缩放解决，于是考虑换成svg
+uni-app目前不支持svg标签，只能通过别的方式委婉的使用SVG。
+
+1. 通过image组件src引入一个svg文件
+2. svg转换成base64再通过image组件src引入
+3. svg转换成行间形式如："data:image/svg+xml;utf8,svg文件内容"，再通过image组件src引入
+4. 通过background-image设置svg文件，但是uni-app背景只支持远程，需要把svg文件放到远程服务器上
+5. svg转base64再通过background-image设置来实现
+6. svg转换成行间形式如："data:image/svg+xml;utf8,svg文件内容"，再通过background-image设置来实现
+   理想状态下以上方式都是可以实现，而且开发调试也都是OK的，但是在打包成ios后，发现第1种方式引入的SVG文件全部丢失。
+   **此处推荐用3和6方案，因为文件转base64体积会变大**。
+
+**svg文件转行间svg/base64**
+
+网上有好多在线的转换工具。
+推荐使用鑫大神制作的转换工具：svg在线在线压缩合并
+界面如下：
+
+```html
+// 行间svg
+<image src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 54'%3E%3Cpath d='M39.5 11.6l19.4 24.6c.2.2.2.6 0 .8l-9.7 12.4c-.2.3-.6.3-.9.1l-.1-.1L34 31.5 19.9 49.4c-.2.3-.6.3-.9.1l-.1-.1-4.8-6c-.2-.2-.2-.6 0-.9l24.3-30.9c.2-.3.6-.3.9-.1.1 0 .2.1.2.1zM9.1 36.2L33.5 5.3c.2-.3.6-.3.9-.1l.1.1 2.4 3c.2.2.2.6 0 .8L12.5 40c-.2.3-.6.3-.9.1 0 0-.1 0-.1-.1l-2.4-3c-.1-.2-.1-.6 0-.8z' fill-rule='evenodd' clip-rule='evenodd' fill='%230e8cf2'/%3E%3Ctext transform='translate(68 38)' font-size='30' font-family='MicrosoftYaHei' fill='%2325292c'%3E远光家园%3C/text%3E%3Cpath fill='none' d='M0 0h200v54H0z'/%3E%3C/svg%3E" />
+// svg转换成base64
+<image src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgNTQiPjxwYXRoIGQ9Ik0zOS41IDExLjZsMTkuNCAyNC42Yy4yLjIuMi42IDAgLjhsLTkuNyAxMi40Yy0uMi4zLS42LjMtLjkuMWwtLjEtLjFMMzQgMzEuNSAxOS45IDQ5LjRjLS4yLjMtLjYuMy0uOS4xbC0uMS0uMS00LjgtNmMtLjItLjItLjItLjYgMC0uOWwyNC4zLTMwLjljLjItLjMuNi0uMy45LS4xLjEgMCAuMi4xLjIuMXpNOS4xIDM2LjJMMzMuNSA1LjNjLjItLjMuNi0uMy45LS4xbC4xLjEgMi40IDNjLjIuMi4yLjYgMCAuOEwxMi41IDQwYy0uMi4zLS42LjMtLjkuMSAwIDAtLjEgMC0uMS0uMWwtMi40LTNjLS4xLS4yLS4xLS42IDAtLjh6IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzBlOGNmMiIvPjx0ZXh0IHRyYW5zZm9ybT0idHJhbnNsYXRlKDY4IDM4KSIgZm9udC1zaXplPSIzMCIgZm9udC1mYW1pbHk9Ik1pY3Jvc29mdFlhSGVpIiBmaWxsPSIjMjUyOTJjIj7ov5zlhYnlrrblm608L3RleHQ+PHBhdGggZmlsbD0ibm9uZSIgZD0iTTAgMGgyMDB2NTRIMHoiLz48L3N2Zz4=" />
+```
 
 # 分包
 
@@ -500,3 +657,90 @@ pages.json
 4. 如果返回状态码200表示用户登录成功，需要把后端返回的token存起来，再判断用户是否绑定手机号；
 
    如果返回状态码60003表示未注册，需要再请求后端注册接口；
+
+
+
+
+
+# uniapp配置服务协议和隐私政策
+
+> 国家对需要上架应用商店的APP有强制要求，必须启动时有服务协议和隐私政策弹窗。
+
+第一步
+
+![img](https://upload-images.jianshu.io/upload_images/17596677-7fadb6d4d505f90f.png?imageMogr2/auto-orient/strip|imageView2/2/w/1045/format/webp)
+
+image.png
+
+
+勾选原生隐私政策提示框后会自动生成androidPrivacy.json文件[具体官网链接](https://links.jianshu.com/go?to=https%3A%2F%2Fask.dcloud.net.cn%2Farticle%2F36937)
+androidPrivacy.json:
+
+```json
+{
+    "version" : "1.0.0",
+    "prompt" : "template",
+    "title" : "服务协议和隐私政策",
+    "message" : "　尊敬的用户，欢迎使用本应用，请务必审慎阅读、充分理解“服务协议”和“隐私政策”各条款，包括但不限于：为了更好的向您提供服务，我们需要收集您的设备标识、操作日志等信息用于分析、优化应用性能。<br/>　　您可阅读<a href=\"https://www.xxx.cn/textTwo.html\">《服务协议》</a>和<a href=\"https://www.xxx.cn/textOne.html\">《隐私政策》</a>了解详细信息。如果您同意，请点击下面按钮开始接受我们的服务。",
+    "buttonAccept" : "同意并接受",
+    "buttonRefuse" : "暂不同意",
+    "hrefLoader" : "system|default",
+    "disagreeMode" : {
+        "support" : false,
+        "loadNativePlugins" : false,
+        "visitorEntry" : true
+    },
+    "styles" : {
+        "backgroundColor" : "#F7F7F7",
+        "borderRadius" : "5px",
+        "title" : {
+            "color" : "#EB292F"
+        },
+        "buttonAccept" : {
+            "color" : "#EB292F"
+        },
+        "buttonRefuse" : {
+            "color" : "#999999"
+        },
+        "buttonVisitor" : {
+            "color" : "#999999"
+        }
+    }
+}
+```
+
+这个文件不能写注释,会影响提示框显示,里面a标签的跳转链接指向对应的服务协议html,放在服务器上的
+
+
+
+![img](https://upload-images.jianshu.io/upload_images/17596677-ad0196b8a564022f.png?imageMogr2/auto-orient/strip|imageView2/2/w/1080/format/webp)
+
+- message 模板提示框上的内容，richtext类型字符串，支持a/font/br等节点，点击a链接会调用内置页面打开其href属性中链接地址。
+  - HBuilderX3.2.5以下版本a链接的href属性仅支持网络地址，以http:或https:开头，如“https://www.dcloud.io/privacy.html”
+  - HBuilder3.2.5及以上版本a链接的href属性支持本地地址，相对于应用根目录，如“static/privacy.html” **注意：务必配置此提示内容，参考上面示例内容并修改《服务协议》和《隐私政策》链接地址**
+
+### 隐私协议内容需要注意的问题
+
+需要在《隐私政策》中必告知用户您的应用基于DCloud uni-app(5+ App/Wap2App)开发，添加如下参考条款：
+
+```
+我们的产品基于DCloud uni-app(5+ App/Wap2App)开发，应用运行期间需要收集您的设备唯一识别码（IMEI/android ID/DEVICE_ID/IDFA、SIM 卡 IMSI 信息、OAID）以提供统计分析服务，并通过应用启动数据及异常错误日志分析改进性能和用户体验，为用户提供更好的服务。
+```
+
+另外隐私政策中需要补充使用到的三方SDK，参考：
+
+#### [#](https://uniapp.dcloud.net.cn/tutorial/app-privacy-android.html#uni-app默认集成三方sdk)uni-app默认集成三方SDK
+
+请参考文档[Android平台各功能模块隐私合规条款](https://ask.dcloud.net.cn/article/39484)
+
+#### [#](https://uniapp.dcloud.net.cn/tutorial/app-privacy-android.html#uni原生插件)uni原生插件
+
+如果应用使用了uni原生插件，需要注意一下几点：
+
+- 使用插件时请查看插件详情页面中的 `隐私、权限声明` 。（插件使用什么sdk？获取了什么用户信息？都应由插件作者提供并填写在 `隐私、权限声明`中）
+- 将插件中用到的三方SDK信息添加到用户隐私协议中。例如集成了`百度定位`。就需要在隐私协议中说明集成了百度定位SDK。获取了xxx用户信息!用于xxx.
+- 如果发现插件有获取用户信息而插件详情页并没有提供`隐私、权限声明`，请与插件开发者或与我们反馈共同督促进行补充。
+
+#### [#](https://uniapp.dcloud.net.cn/tutorial/app-privacy-android.html#其它)其它
+
+《隐私政策》必须非常清楚、全面地说明（不要用可能收集、了解用户信息这种模糊不清晰的词语）收集用户个人信息的目的、方式和范围。 如果应用使用“通讯录”、“短信”等相关功能，请根据应用业务场景进行描述。

@@ -1,14 +1,10 @@
-# React
-
-参考文档：https://react.docschina.org/docs/getting-started.html
-
-[TOC]
-
-
-
 ## 1. state与setState
 
-### 正确地使用 State
+### 为什么使用setState
+
+React并没有实现类似于Vue2中的`Object.defineProperty`或者Vue3中的`Proxy`的方式来监听数据变化。
+
+我们必须通过`setState()`来告知React数据已经发生了变化。
 
 关于 `setState()` 你应该了解三件事：
 
@@ -101,28 +97,36 @@ this.setState(function(state, props) {
 
 
 
-## 2. 条件判断
+## 2. 条件渲染
 
-在jsx中，我们在大括号{}内只能写表达式，不能编写逻辑代码，如if判断、for循环，此时我们可以通过短路逻辑判断，如：
+> 在jsx中，我们在大括号{}内只能写表达式，不能编写逻辑代码，如if判断、for循环，此时我们可以通过短路逻辑判断。
+>
 
-下面例子写了当state的goods长度不为0时则展示对应数据
+基于数据控制元素显示隐藏
 
-```react
-export default class CartSample extends Component {
-    this.state = {
-      goods: [
-      	{ id: 1, text: "web全栈架构师", count: 2 },
-      ]
-    }
-    render() {
-        return (
-        	<ul>
-              {this.state.goods.length && this.state.goods}
-            </ul>
-        )
-    }
-}
-```
+1. 控制其是否渲染，相当于Vue的v-if
+
+   没有数据可以不渲染，结构中找不到他，也获取不了DOM元素，有数据再渲染
+
+   ```jsx
+   function App(){
+       return (
+       	<div>
+           	{newsList.length != 0 ? <NewsItem/> : null }
+           </div>
+       )
+   }
+   ```
+
+   
+
+2. 通过useRef获取DOM元素，控制元素的样式display，相当于Vue的v-show
+
+   不管有没有数据都会渲染，只不过没有数据则样式为none，可以获取DOM元素
+
+对于显示隐藏不经常变化的采用方案1
+
+
 
 ## 3. 循环展示列表
 
@@ -272,89 +276,21 @@ addGood = () => { () => {this.addGood()} }
 
 
 
-## 7. setState注意事项
+## 7. 引入图片注意事项
 
-使用setState修改值有两个方法：
+在JSX视图中，想直接导入静态资源图片，不能这样设置相对地址，因为经过webpack打包处理，项目的目录结构是改变的，但是JSX中写的还是图片的相对地址，但是在css中可以直接使用图片相对地址，webpack会处理。
 
-一个是传入对象修改，另一个方式是传入函数修改
-
-```react
-// 方式一
-state = {
-	text: ''
-}
-this.setState({
-	text: '新值'
-})
-
-// 方式二
-state = {
-	text: ''
-}
-this.setState(prevState => {
-	let text = '123'
-	prevState.text = text
-})
+```jsx
+<img src="../assets/images/time.png"/>
 ```
 
-### 7.1 方式一注意事项
+JSX中正确引入图片格式，使用ESModule
 
-在使用方式一时要注意，若多次使用方式一进行setState，react最终会将多个setState操作给合并，这时候，若是多次setState了通过值，则只取最后一次setState的时候的值，如：
+```jsx
+import timeImg from '../assets/images/time.png'
 
+<img src={timeImg}/>
 ```
-state = {
-	text: ''
-}
-this.setState({
-	text: '新值'
-})
-this.setState({
-	text: '新新值'
-})
-```
-
-最后的值为 ： 新新值
-
-### 7.2 方式二注意事项
-
-使用方式二时，我们最好按照react给我们定的规范，每次都给state需要修改的对象重新设置一个新的的值。
-
-如：
-
-```js
-this.state = {
-      goods: [
-        { id: 1, text: "web全栈架构师" },
-        { id: 2, text: "python全栈架构师" }
-      ],
-      text: ''
-}
-textChange = e => {
-    this.setState({ text: e.target.value });
-};
-<input type="text" value={this.state.text} onChange={this.textChange} />
-<button onClick={this.addGood}>添加商品</button>
-```
-
-现在当点击某个按钮时会触发addGood事件，addGood用来添加新商品数据到goods中，此时addGood的写法是这样的
-
-```js
-addGood = () => {
-    this.setState(prevState => {
-      return {
-        goods: [
-          ...prevState.goods,
-          {
-            id: prevState.goods.length + 1,
-            text: prevState.text
-          }
-        ]
-      };
-    });
-  }
-```
-
-会将以前state.goods里的数据展开，拷贝进一个新的数组，再将新数据加进去，这就是react的规范。
 
 ## 8. antd框架引入
 
@@ -463,7 +399,7 @@ function MyComponent() {
 
 `fallback` 属性接受任何在组件加载过程中你想展示的 React 元素。你可以将 `Suspense` 组件置于懒加载组件之上的任何位置。你甚至可以用一个 `Suspense` 组件包裹多个懒加载组件。
 
-## 10. 性能优化：浅比较
+## 10. 性能优化
 
 参考文档：https://react.docschina.org/docs/optimizing-performance.html
 
@@ -523,7 +459,7 @@ class Comment extends React.Component{
 }
 ```
 
-### 10.2 使用PureComponent
+### 10.2 使用PureComponent(类组件写法)
 
 首先我们先研究一下PureComponent的实现原理：
 
@@ -581,14 +517,18 @@ class Comment extends React.PureComponent{
 
 ### 10.3 使用memo
 
-类形式的组件可以进行浅比较，现在在React v16.6.0之后，函数式也添加了浅比较，也就是memo， 使用方式如下：
+如果只希望props改变时子组件才重新渲染，而不是父组件内数据变化子组件也重新渲染；类形式的组件可以进行浅比较，现在在React v16.6.0之后，函数式也添加了浅比较，也就是memo， 使用方式如下：
 
-```react
-constJoke=React.memo(() => (
-  <div>
-    {this.props.value||'loading...'}
-  </div>
-));
+```jsx
+import { memo } from "react"
+
+const Profile = memo((props) => {
+ return <div>
+    {this.props.message||'loading...'}
+ </div>
+});
+
+export default Profile
 ```
 
 只需将组件用React.memo包裹即可。
@@ -990,14 +930,55 @@ function Radio({children, ...rest}) {
 
 
 
-## 13 DOM对象和useRef()
+## 13 组件通信
 
-Refs 提供了一种方式，允许我们访问 DOM 节点或在 render 方法中创建的 React 元素。
+### 父传子
 
-在典型的 React 数据流中，[props](https://zh-hans.reactjs.org/docs/components-and-props.html) 是父组件与子组件交互的唯一方式。要修改一个子组件，你需要使用新的 props 来重新渲染它。但是，在某些情况下，你需要在典型数据流之外强制修改子组件。被修改的子组件可能是一个 React 组件的实例，也可能是一个 DOM 元素。对于这两种情况，React 都提供了解决办法。
+React 组件使用`props`来互相通信。每个父组件都可以提供 props 给它的子组件，从而将一些信息传递给它。Props 可能会让你想起 HTML 属性，但你可以通过它们传递任何 JavaScript 值，包括对象、数组和函数。
 
-### 
+**1.将 props 传递给子组件** 
 
+首先，将一些 props 传递给 `Avatar`。例如，让我们传递两个 props：`person`（一个对象）和 `size`（一个数字）：
+
+```jsx
+export default function Profile() {
+  return (
+    <Avatar
+      person={{ name: 'Lin Lanying', imageId: '1bX5QH6' }}
+      size={100}
+    />
+  );
+}
+```
+
+**2.在子组件中读取 props** 
+
+你可以通过在 `function Avatar` 之后直接列出它们的名字 `person, size` 来读取这些 props。这些 props 在 `({` 和 `})` 之间，并由逗号分隔。这样，你可以在 `Avatar` 的代码中使用它们，就像使用变量一样。
+
+```jsx
+function Avatar({ person, size }) {
+  // 在这里 person 和 size 是可访问的
+}
+
+function Avatar(props) {
+  let {person,size} = props  
+  // 在这里 person 和 size 是可访问的
+}
+```
+
+**3.给 prop 指定一个默认值** 
+
+如果你想在没有指定值的情况下给 prop 一个默认值，你可以通过在参数后面写 `=` 和默认值来进行解构：
+
+```jsx
+function Avatar({ person, size = 100 }) {
+  // ...
+}
+```
+
+现在,如果 `<Avatar person={...} />` 渲染时没有 `size` prop，  `size` 将被赋值为 `100`。
+
+默认值仅在缺少 `size` prop 或 `size={undefined}` 时生效。 但是如果你传递了 `size={null}` 或 `size={0}`，默认值将 **不** 被使用。
 
 ## 13. Hook
 
@@ -1299,7 +1280,7 @@ export default function Table() {
 
 
 
-### 13.1 useState
+### useState
 
 useState的用法很简单也很方便，比起class的方式简直要简洁得不少
 
@@ -1321,7 +1302,7 @@ export default function Example() {
 
 如上例子所示，useState(0)，0表示初始值，而将useState解构成两个成员，一个是状态属性，一个是更改状态的函数，其中useState有多个，这样子就比class的形式要简洁多了。
 
-### 13.2 useEffect
+### useEffect
 
 你之前可能已经在 React 组件中执行过数据获取、订阅或者手动修改过 DOM。我们统一把这些操作称为“副作用”，或者简称为“作用”。
 
@@ -1523,7 +1504,7 @@ export default App;
 
 
 
-### UseMemo
+### useMemo
 
 useMemo和useCallback十分相似，useCallback用来缓存函数对象，useMemo用来缓存函数的执行结果。在组件中，会有一些函数具有十分的复杂的逻辑，执行速度比较慢。闭了避免这些执行速度慢的函数返回执行，可以通过useMemo来缓存它们的执行结果，像是这样：
 
@@ -1537,7 +1518,7 @@ useMemo中的函数会在依赖项发生变化时执行，注意！是执行，�
 
 
 
-### UseImperativeHandle
+### useImperativeHandle
 
 在React中可以通过forwardRef来指定要暴露给外部组件的ref：
 
@@ -1603,7 +1584,7 @@ const App = () => {
 
 
 
-### UseDeferredValue
+### useDeferredValue
 
 useDeferredValue用来设置一个延迟的state，比如我们创建一个state，并使用useDeferredValue获取延迟值：
 
@@ -1618,7 +1599,7 @@ const deferredQueryStr = useDeferredValue(queryStr);
 
 
 
-### UseTransition
+### useTransition
 
 当我们在组件中修改state时，会遇到复杂一些的state，当修改这些state时，甚至会阻塞到整个应用的运行，为了降低这种state的影响，React为我们提供了useTransition，通过useTransition可以降低setState的优先级。
 
@@ -1966,9 +1947,64 @@ export default function ContextTest() {
 
 
 
-## 15. 
+## 15. CSS使用方案
 
-## 16. Redux的使用
+### css modules
+
+- css modules并不是React特有的解决方案，而是所有使用了类似于webpack配置的环境下都可以使用，比如配置`webpack.config.js`中的`modules:true`
+- React的脚手架已经内置了css modules的配置，直接将`.css/.less/.scss`修改为`.module.css/.module.less/.module.scss`，之后在页面中引入`import styles from ''./module.css"`，在元素上`className={styles.类名}`
+- 虽然这种方案解决了css局部作用域的问题，是很多人喜欢的方案，但是有缺陷
+  1. 引用的类名，不能使用连接符`(.home-title)`，在js中是不识别的
+  2. 所有的`className`都必须使用`{styles.类名}`的形式编写
+  3. 不方便变量动态修改某些样式，依然需要使用内联样式或者第三方库`classNames`的方式
+
+```jsx
+npm install classnames
+import classNames from 'classnames'
+
+classNames('foo','bar'); // 'foo bar'
+classNames('foo',{bar:true}); // 'foo bar'
+classNames({'foo-bar':true}); // 'foo-bar'
+classNames({foo:true,'foo-bar':true}); // 'foo foo-bar'
+```
+
+### css in js
+
+- 这不是React官方推出的方案，是第三方的库
+- css in js通过js来为css赋予一些能力，包括类似于css预处理器一样的样式嵌套，函数定义，逻辑复用，动态修改状态等等
+- 虽然css预处理器也具备某些能力，但是获取动态状态依然是一个不好处理的点
+- 目前比较流行的css in js库有`styled-components`、`emotion`、`glamorous`
+
+```jsx
+// App.jsx
+import {AppWrapper} from ./style
+
+export default const App = () => {
+    const [color,setColor] = useState('yellow')
+    return (
+    	<AppWrapper>
+        	<div className="section" color={color}></div>
+        	<button onClick={()=>{setColor("blue")}}>修改颜色</button>
+        </AppWrapper>
+    )
+}
+
+// style.js
+import styled from "styled-components"
+
+export const AppWrapper = styled.div`
+	.section {
+		border: 1px solid red;
+		&:hover {
+			color:${props=>props.color};
+		}
+	}
+`
+```
+
+
+
+## Redux的使用
 
 ![img](https://gitee.com/cai-lunduo/react-markdown-notes/raw/master/public/redux.png)
 
@@ -1976,7 +2012,7 @@ export default function ContextTest() {
 cnpm install redux --save
 ```
 
-### 16.1 简单使用
+### 简单使用
 
 在文件store.js内：
 
@@ -2052,7 +2088,7 @@ store.subscribe(render)
 
 只有订阅了，`store`状态才能在随着页面渲染时发生改变，不然你将看不到效果。
 
-### 16.2 **思考**
+### **思考**
 
 上面的原始方法存在一个问题：在需要共享全局状态的组件，我们都需要引入store.js，这样子显得很繁杂，那么要如何改变这个问题呢？
 
@@ -2062,7 +2098,7 @@ store.subscribe(render)
 cnpm install react-redux --save
 ```
 
-### 16.3 react-redux
+### react-redux
 
 在`Provider`传入`store`
 
@@ -2113,7 +2149,7 @@ export default connect(mapStateToProps, mapDispatchToProps)(StoreTest2)
 
 在这里，我们使用了`connect`高阶组件，传入两个配置项，再对需要扩展的组件进行包装，注意这里的写法已经变了，逻辑已经被我们提到了外面，此时`ShowTest2`只是一个傻瓜式组件，不负责`dispatch`也不用调用`getState`方法，`connect`内部的两个配置项分别帮我们把`state`的值映射到被包装组件`StoreTest2`的内部，并放在`props`里面，这样子我们在组件内就可以直接通过`props`拿到`state`和`dispatch`了。
 
-### **16.4 装饰器简化**
+### **装饰器简化**
 
 只是个语法糖
 
@@ -2134,7 +2170,7 @@ class StoreTest3 extends React.Component {
 export default StoreTest3
 ```
 
-### **16.5 处理异步**
+### **处理异步**
 
 ![image-20210401102441651](https://gitee.com/cai-lunduo/react-markdown-notes/raw/master/public/redux-thunk.png)
 
@@ -2200,7 +2236,7 @@ export default StoreTest4
 
 这里新增了一个`asyncAdd`方法，注意这里的写法是返回一个带`dispatch`参数的函数，而不像其他同步操作直接返回对象。
 
-### **16.6 代码抽离**
+### **代码抽离**
 
 由于我们全局共享状态是有多种类型的，如用户的登录态、全局的主题、用户信息等，因此我们将所有全局共享状态都放置再store.js将会导致后期变得可维护差，为了使代码更具有可用性、易用性、可维护性。我们应该将每一部分的状态都放置在一个文件。
 
@@ -2285,7 +2321,7 @@ export default StoreTest5
 
 
 
-### 16.7 RTK
+### RTK
 
   除了Redux核心库外Redux还为我们提供了一种使用Redux的方式——Redux Toolkit。它的名字起的非常直白，Redux工具包，简称RTK。RTK可以帮助我们处理使用Redux过程中的重复性工作，简化Redux中的各种操作。
 
@@ -2450,7 +2486,7 @@ const App = ()=> {
 
 
 
-### 16.7 RTK Query
+### RTK Query
 
   RTK不仅帮助我们解决了state的问题，同时，它还为我们提供了RTK Query用来帮助我们处理数据加载的问题。RTK Query是一个强大的数据获取和缓存工具。在它的帮助下，Web应用中的加载变得十分简单，它使我们不再需要自己编写获取数据和缓存数据的逻辑。
 

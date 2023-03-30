@@ -3270,3 +3270,205 @@ console.log(str.match(/a/g)); //['a', 'a']
 
 
 
+# 业务常用API
+
+## Intersection Observer
+
+### 一、介绍
+
+`Intersection Observer API` 提供了一种方法可以监听**目标元素**是否展示到**视口（viewport）**，常见的需求场景：
+
+- **图片懒加载**
+- **滚动动画**
+- **…**
+
+上述的需求，以往一般**监听 `scroll` 事件，利用 `getBoundingClientRect()`方法获取目标元素的位置信息**。由于**监听 `scroll` 事件，不断地触发回流**，对性能有一定的影响，不过可以通过**函数节流**解决，**但是 `getBoundingClientRect()` 方法对性能造成的影响无法有效优化的。**
+
+**！！！所以，浏览器为了解决上述难题，推出了`IntersectionObserver API` ，由于方法是异步的，不影响主线程的执行效率。**
+
+### 二、兼容性
+
+兼容市面的主流浏览器，总体来说乐观，不过为了代码的严谨，简单判断下：
+
+```javascript
+if (window?.IntersectionObserver) {
+	let io = new IntersectionObserver(callback, options)
+	io.observe(targetElement)
+}
+```
+
+![在这里插入图片描述](https://img-blog.csdnimg.cn/001d47c4d4774ec78a62cad66d6b9baa.png?t_70)
+
+### 三、内置方法/属性
+
+```javascript
+let io = new IntersectionObserver(entries => {
+	// IntersectionObserverEntry 作为一个参数返回
+	console.log(entries)
+}, { root: null, rootMargin: '0px 0px', threshold: [0.5, 1] })
+
+// 开始监听
+io.observe(targetElement)
+// 停止监听
+io.unobserve(targetElement)
+// 结束监听器
+io.disconnect()
+```
+
+以上我们可以看到，**`IntersectionObserver` 接收一个回调函数，和一个对象`options`作为参数。**
+
+**`IntersectionObserverEntry` 实例作为`entries`参数被传递到回调函数，提供此时元素的相关信息。**
+
+**查看 `entries` 具有哪些属性：**
+
+![在这里插入图片描述](https://img-blog.csdnimg.cn/85739253045d4f6995e786956c718f3a.png?t_70)
+
+| 属性                     | 作用                                                         |
+| ------------------------ | ------------------------------------------------------------ |
+| **`boundingClientRect`** | 目标元素的矩形区域的信息                                     |
+| **`intersectionRatio`**  | 目标元素的可见比例，即 `intersectionRect` 占 `boundingClientRect` 的比例，完全可见时为1，完全不可见时小于等于0 |
+| **`intersectionRect`**   | 目标元素与视口（或根元素）的交叉区域的信息                   |
+| **`isIntersecting`**     | 目标目标元素是否已转换为相交状态（`true`）或已转换为不相交状态（`false`） |
+| **`rootBounds`**         | 根元素的矩形区域的信息，`getBoundingClientRect()`方法的返回值，如果没有根元素（即直接相对于视口滚动），则返回`null` |
+| **`target`**             | 被观察的目标元素，是一个 `DOM` 节点对象                      |
+| **`time`**               | 可见性发生变化的时间，是一个高精度时间戳，单位为毫秒         |
+
+
+
+**`API` 提供的方法/属性：**
+
+| 方法 / 属性                    | 作用                                                         |
+| ------------------------------ | ------------------------------------------------------------ |
+| **`root`**                     | 根元素，默认视口(`viewport`)                                 |
+| **`rootMargin`**               | 相对根元素的偏移量，默认值为"0px 0px"                        |
+| **`threshold`**                | 触发回调函数的门阀值，升序排列，默认0，可选：[0, 0.25, 0.5, 0.75, 1] |
+| **`observe(targetElement)`**   | 开始监听，必传 `targetElement`，可同时观察多个节点           |
+| **`unobserve(targetElement)`** | 停止监听，必传 `targetElement`                               |
+| **`takeRecords()`**            | 为所有监听目标返回一个`IntersectionObserverEntry`对象数组并且停止监听这些目标 |
+| **`disconnect()`**             | 停止监听器工作                                               |
+
+### 四、使用
+
+我们这里写一个滚动更新元素内容/样式功能：
+![在这里插入图片描述](https://img-blog.csdnimg.cn/582ed11ca33c466a99077f19abef356d.gif#pic_center?t_70)
+
+**`HTML：`**
+
+```javascript
+<div class="container">
+  <div class="item" data-id="1">元素1：不可见</div>
+  <div class="item" data-id="2">元素2：不可见</div>
+  <div class="item" data-id="3">元素3：不可见</div>
+  <div class="item" data-id="4">元素4：不可见</div>
+  <div class="item" data-id="5">元素5：不可见</div>
+</div>
+1234567
+```
+
+**`JS：` 当目标元素完全暴露/非完全暴露时，修改文字/背景颜色**
+
+```javascript
+<script>
+  if (window?.IntersectionObserver) {
+    let items = [...document.getElementsByClassName('item')] // 解析为真数组，也可用 Array.prototype.slice.call()
+
+    let io = new IntersectionObserver(entries => {
+      entries.forEach(item => {
+        // intersectionRatio === 1说明该元素完全暴露出来
+        if (item.intersectionRatio === 1) {
+          item.target.style.backgroundColor = 'deeppink'
+          item.target.innerHTML = `元素${item.target.getAttribute('data-id')}：完全可见`
+        } else {
+          item.target.style.backgroundColor = 'deepskyblue'
+          item.target.innerHTML = `元素${item.target.getAttribute('data-id')}：不可见`
+        }
+      })
+    }, {
+      root: null,
+      rootMargin: '0px 0px',
+      threshold: 1 // 阀值设为1，当只有比例达到1时才触发回调函数
+    })
+
+    items.forEach(item => io.observe(item))
+  }
+</script>
+```
+
+
+
+## getBoundingClientRect
+
+> **`Element.getBoundingClientRect()`** 方法返回一个 [`DOMRect`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMRect) 对象，其提供了元素的大小及其相对于视口的位置。
+
+常见的需求场景：
+
+- **tab吸顶时需要判断tab距离视口顶部的距离**
+- **…**
+
+用法：`Element.getBoundingClientRect()`
+返回值：`getBoundingClientRect()` 返回的是矩形的集合，而`scrollTop`是获取元素与页面顶部的距离不是视口顶部的距离
+表示了当前盒子在浏览器中的位置以及自身占据的空间的大小，除了 width 和 height 之外，
+其他的属性是相对于**视图窗口**的左上角来计算的。
+
+例如：
+
+- bottom 是盒子底部边框 距离 视口顶部 的距离；
+- right 是盒子右侧边框距离视口左侧的距离
+
+我设置一个盒子：
+
+```css
+*{
+    margin: 0;
+    padding: 0;
+}
+div{
+    width:100px;
+    height: 200px;
+    background-color: rgb(109, 27, 141);
+}
+123456789
+```
+
+该函数返回一个Object对象，该对象有6个属性：top,lef,right,bottom,width,height；
+
+```css
+bottom: 200
+height: 200
+left: 0
+right: 100
+top: 0
+width: 100
+x: 0
+y: 
+```
+
+
+
+## scrollIntoView
+
+> `Element`接口的`scrollIntoView()` 方法会滚动元素的父容器，使被调用 `scrollIntoView()` 的元素对用户可见。
+
+常见的需求场景：
+
+- tab点击滚动到当前页面指定区域
+- …
+
+用法：
+
+```js
+element.scrollIntoView(); // 等同于element.scrollIntoView(true)
+element.scrollIntoView(boolean); // Boolean型参数,true or false
+element.scrollIntoView(options); // Object型参数
+```
+
+当参数为Boolean时：
+
+- 如果为 `true`，元素的顶端将和其所在滚动区的可视区域的顶端对齐。相应的 options: `{block:"start",inline:"nearest"}`。
+- 如果为 `false`，元素的底端将和其所在滚动区的可视区域的底端对齐。相应的options: `{block:"end",inline:"nearest"}`。
+
+当参数为options对象时，属性有：
+
+- `behavior`：定义动画过渡效果， "auto"或 "smooth（平滑滚动）" 之一。默认为 "auto"。
+- `block`：定义垂直方向的对齐， "start", "center", "end", 或 "nearest"之一。默认为 "start"。
+- `inline`：定义水平方向的对齐， "start", "center", "end", 或 "nearest"之一。默认为 "nearest"。
