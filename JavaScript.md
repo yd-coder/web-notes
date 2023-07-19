@@ -2156,13 +2156,17 @@ console.log(arr.lyb()); //[ 2, 5, 7, 7, 9 ]
 
 ## Object.defineProperty
 
-> `Object.defineProperty(对象名, '属性名', {`
->     `value:`修改属性值，没有则新增
->     `writable:`是否可以修改，默认为false不允许，独一无二，但只有对象名。属性不能修改，使用Object.defineProperty依旧可以修改
->     `enumerable:`是否被枚举，也就是这个无法被遍历出来，但却能被调用，默认为false，所以新增一个属性需要改为true才能遍历
->     `configurable:`是否可以被删除或者修改特性，也就是修改writable、enumerable、configurable，但value依旧可以修改，默认为false
->
-> `})`
+> `Object.defineProperty()`方法会直接在一个对象上定义一个新属性，或者修改一个对象的现有属性，并返回此对象。
+
+`Object.defineProperty(对象名, '属性名', {`
+ `value:`修改属性值，没有则新增
+ `writable:`是否可以修改，默认为false不允许，独一无二，但只有对象名。属性不能修改，使用Object.defineProperty依旧可以修改
+ `enumerable:`是否被枚举，也就是这个无法被遍历出来，但却能被调用，默认为false，所以新增一个属性需要改为true才能遍历
+ `configurable:`是否可以被删除或者修改特性，也就是修改writable、enumerable、configurable，但value依旧可以修改，默认为false
+
+`})`
+
+**备注：** 应当直接在 [`Object`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object) 构造器对象上调用此方法，而不是在任意一个 `Object` 类型的实例上调用。
 
 ```js
 let obj = {
@@ -2196,6 +2200,18 @@ Object.defineProperty(obj, "age", {
     configurable: true,
 });
 ```
+
+**总结:**
+
+1.Proxy性能优于Object.defineProperty。 
+
+2.Proxy代理的是整个对象，Object.defineProperty只代理对象上的某个属性进行修改或者新增，必须遍历对象的每个属性，如果是多层嵌套的数据需要循环递归绑定;
+
+3.对象上定义新属性时，Proxy可以监听到，Object.defineProperty监听不到，需要借助$set方法;
+
+4.数组的某些方法(push、unshift和splice)Object.defineProperty监听不到，Proxy可以监听到;
+
+5.Proxy在ie浏览器存在兼容性问题
 
 # ES6
 

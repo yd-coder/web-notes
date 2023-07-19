@@ -70,29 +70,28 @@ defineExpose({
 
 # 响应式原理
 
-```javascript
-let person = {
-  name: '小明',
-  age: 21,
-};
+Vue2使用的是`Object.defineProperty` Vue3 使用的是`Proxy`
 
-let p = new Proxy(person, {
-  get(target, propName) {
-    console.warn(`监测到${propName}被读取`);
-    return target[propName];
-  },
-  set(target, propName, value) {
-    console.warn(`监测到${propName}被修改为${value}`);
-    target[propName] = value;
-  },
-  deleteProperty(target, propName) {
-    console.warn(`监测到${propName}被删除`);
-    delete target[propName];
-  },
-});
+**2.0的不足**
+
+对象只能劫持设置好的数据，新增的数据需要Vue.Set(xxx)；数组只能操作七种方法，修改某一项值无法劫持。
+
+```typescript
+export const reactive = <T extends object>(target:T) => {
+    return new Proxy(target,{
+        get (target,key,receiver) {
+          const res  = Reflect.get(target,key,receiver) as object
+          return res
+        },
+        set (target,key,value,receiver) {
+           const res = Reflect.set(target,key,value,receiver)
+           return res
+        }
+    })
+}
 ```
 
-
+Vue3的响应式原理依赖了`Proxy`这个核心 API，通过`Proxy`可以劫持对象的某些操作。
 
 
 
@@ -429,6 +428,7 @@ function MyRef<T>(value: T) {
 
 ```js
 import { reactive } from 'vue';
+
 let data = reactive([]);
 function fn(){
   setTimeout(()=>{
@@ -2164,7 +2164,7 @@ const close = () => {
 - **beforeMount** 指令绑定到元素后调用 只调用一次
 - **mounted** 元素插入父级dom调用
 - **beforeUpdate** 元素被更新之前调用
-- **update** 这个周期方法被移除 改用**updated**
+- **updated** 这个update周期被移除 改用**updated**
 - **beforeUnmount** 在元素被移除前调用
 - **unmounted** 指令被移除后调用 只调用一次
 
@@ -2262,6 +2262,49 @@ const vMove: Directive = (el, binding: DirectiveBinding<Dir>) => {
 </style>
 ```
 
+## 案例按钮权限
+
+```vue
+<template>
+   <div class="btns">
+       <button v-has-show="'shop:create'">创建</button>
+ 
+       <button v-has-show="'shop:edit'">编辑</button>
+ 
+       <button v-has-show="'shop:delete'">删除</button>
+   </div>
+</template>
+ 
+<script setup lang='ts'>
+import { ref, reactive,  } from 'vue'
+import type {Directive} from 'vue'
+//permission
+localStorage.setItem('userId','xiaoman-zs')
+ 
+//mock后台返回的数据
+const permission = [
+    'xiaoman-zs:shop:edit',
+    'xiaoman-zs:shop:create',
+    'xiaoman-zs:shop:delete'
+]
+const userId = localStorage.getItem('userId') as string
+const vHasShow:Directive<HTMLElement,string> = (el,bingding) => {
+   if(!permission.includes(userId+':'+ bingding.value)){
+       el.style.display = 'none'
+   }
+}
+ 
+</script>
+ 
+<style scoped lang='less'>
+.btns{
+    button{
+        margin: 10px;
+    }
+}
+</style>
+```
+
 ## 案例自定义拖拽指令 
 
 ```vue
@@ -2315,6 +2358,44 @@ const vMove: Directive = {
   }
 }
 </style>
+```
+
+## 案例图片懒加载
+
+```vue
+<template>
+    <div>
+        <div v-for="item in arr">
+            <img height="500" :data-index="item" v-lazy="item" width="360">
+        </div>
+    </div>
+</template>
+ 
+<script setup lang='ts'>
+import { ref, reactive } from 'vue'
+import type { Directive } from 'vue'
+    
+const images: Record<string, { default: string }> = import.meta.glob('./assets/images/*.*',{eager:true})
+let arr = Object.values(images).map(v => v.default)
+ 
+let vLazy: Directive<HTMLImageElement, string> = async (el, binding) => {
+    let url = await import('./assets/vue.svg')
+    el.src = url.default;
+    let observer = new IntersectionObserver((entries) => {
+        console.log(entries[0], el)
+        if (entries[0].intersectionRatio > 0 && entries[0].isIntersecting) {
+            setTimeout(() => {
+                el.src = binding.value;
+                observer.unobserve(el)
+            }, 2000)
+        }
+    })
+    observer.observe(el)
+}
+ 
+</script>
+ 
+<style scoped lang='less'></style>
 ```
 
 
@@ -2621,6 +2702,101 @@ const red = ref<string>('red')
 }
  
 </style>
+```
+
+
+
+# Event loop
+
+**JS 执行机制**
+
+在我们学js 的时候都知道js 是单线程的如果是多线程的话会引发一个问题在同一时间同时操作DOM 一个增加一个删除JS就不知道到底要干嘛了，所以这个语言是单线程的但是随着HTML5到来js也支持了多线程`webWorker` 但是也是不允许操作DOM
+
+单线程就意味着所有的任务都需要排队，后面的任务需要等前面的任务执行完才能执行，如果前面的任务耗时过长，后面的任务就需要一直等，一些从用户角度上不需要等待的任务就会一直等待，这个从体验角度上来讲是不可接受的，所以`JS`中就出现了异步的概念。
+
+**同步任务**
+
+代码从上到下按顺序执行
+
+**异步任务**
+
+1. 宏任务
+
+   script(整体代码)、setTimeout、setInterval、UI交互事件onClick...、postMessage、Ajax
+
+2. 微任务
+
+   Promise.then catch finally、MutaionObserver、process.nextTick(Node.js 环境)
+
+**运行机制**
+
+所有的同步任务都是在主进程执行的形成一个执行栈，主线程之外，还存在一个"任务队列"，异步任务执行队列中先执行宏任务，然后清空当次宏任务中的所有微任务，然后进行下一个tick如此形成循环。
+
+```javascript
+<script>
+async function Prom(){
+    console.log('Y') // 同步 
+    await Promise.reslove() // 微任务
+    console.log('X')
+}
+setTimeout(() => { // 宏任务
+	console.log(1)
+	Promise.resolve().then(()=>{
+        console.log(2)
+    })
+})
+setTimeout(() => { // 宏任务
+	console.log(3)
+	Promise.resolve().then(()=>{
+        console.log(4)
+    })
+})
+Promise.resolve().then(()=>{ //微任务
+    console.log(5)
+})
+Promise.resolve().then(()=>{ //微任务
+    console.log(6)
+})
+Promise.resolve().then(()=>{ //微任务
+    console.log(7)
+})
+Prom()
+console.log(0) // 同步
+</script>
+
+// Y 0 5 6 7 X 1 2 3 4
+// 先执行script这个宏任务，然后找里面的同步其次清空本次宏任务里的微任务，Prom()在4个微任务之后才执行的，所以x要比567后，最后执行下一个宏任务和情况里面微任务
+```
+
+
+
+# nextTick
+
+当你在 Vue 中更改响应式状态时，最终的 DOM 更新并不是同步生效的，而是由 Vue 将它们缓存在一个队列中，直到下一个“tick”才一起执行。这样是为了确保每个组件无论发生多少状态改变，都仅执行一次更新。
+
+`nextTick()` 可以在状态改变后立即使用，以等待 DOM 更新完成。你可以传递一个回调函数作为参数，或者 await 返回的 Promise。
+
+把改变数据的代码放在`nextTick()`中，把同步代码变异步，这样数据改变和DOM更新就一致了。
+
+```vue
+<script>
+let chatList = reactive([])
+let box = ref<HTMLDivElement>()
+let ipt = ref('')
+const send = async () => {
+    chatList.push({
+        name:'',
+        message:ipt.value
+    })
+    // 2.async await写法
+    await nextTick()
+    box.value!.scrollTop = 9999999
+}
+// 1.回调函数模式
+nextTick(()=>{
+    box.value!.scrollTop = 9999999
+})
+</script>
 ```
 
 
@@ -4288,7 +4464,7 @@ config get registry
 pnpm set registry https://registry.npm.taobao.org 
 
 # https://registry.npmjs.org/
-pnpm config set store-dir E:/.pnpm-store  # 修改默认仓库地址
+pnpm config set store-dir D:/.pnpm-store  # 修改默认仓库地址
 
 pnpm store path  # 获取包仓库地址（pnpm的仓库不能跨磁盘）
 pnpm store prune  # 从store中删除当前未被(硬连接)引用的包来释放store的空间

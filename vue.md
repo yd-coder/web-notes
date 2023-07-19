@@ -2581,7 +2581,7 @@ export function request(config) {
 
 
 
-# Github托管
+# Git管理
 
 
 
@@ -2614,7 +2614,6 @@ git config -l
    git log
    ```
 
-   
 
 
 
@@ -2684,7 +2683,7 @@ git push //上传本地所有分支代码到远程所有的分支上。
 
 
 
-#### 在远端创建好仓库本地提交：
+#### 在远端创建好仓库本地提交
 
 1. 将本地项目文件初始化，建立一个git代码仓库
 
@@ -2705,8 +2704,6 @@ git fetch origin 分支名称(比如说主分支origin master)
 //将代码进行合并
 git merge 分支名
 ```
-
-
 
 3. 把本地未同步远端仓库的文件都加入暂存区
 
@@ -2731,6 +2728,84 @@ git remote add origin 链接
 ```
 git push -u origin main
 ```
+
+#### 提PR(Pull Request)
+
+1. 首先把你要提交 PR 的项目`Fork`（拷贝当时的项目文件到自己仓库，如果后续原项目文件发生改变，你必须通过其他的方式去同步）到自己的仓库。
+
+2. 然后到自己的仓库中，将`Fork`的项目 clone 到本地。
+
+3. 添加远程分支
+
+   ```
+   # git remote add 远程仓库别名 远程仓库地址
+   git remote add upstream https://github.com/开源项目.git
+   ```
+
+4. 拉取合并远程分支到master分支（这步需要随时做，保持你的master分支永远是官方最新成果，也可以在GitHub仓库页手动拉取同步代替命令行更新）
+
+   ```
+   # 拉取远程仓库的master分支/git fetch 远程仓库别名 分支名
+   git fetch upstream master
+   # 切换分支
+   git checkout master
+   # 合并远程分支/git merge 远程仓库别名/分支名
+   git merge upstream/master
+   ```
+
+5. 创建并切换到自己的分支，分支名最好紧贴这次更新的内容
+
+   ```
+   git checkout -b feat/xxxx
+   ```
+
+6. 修改代码
+
+7. 暂存修改的代码
+
+   ```
+   git add .
+   ```
+
+8. 提交你的修改：
+
+   ```
+   git commit -m 'feat(function): add xxxxx'
+   ```
+
+9. 将新的分支推送到远程上游
+
+   ```
+   git push --set-upstream origin feat/xxxx
+   ```
+
+10. 在自己的 GitHub 仓库中找到`Fork`的对应项目，打开 `Pull requests` Tab，点击 `New pull request` 按钮，新建一个 PR。
+
+11. 然后，在下面的界面中，选择刚刚提交的分支，最后点击 `Create pull request` 即可。
+
+
+
+#### 如何在新分支开发时保持主分支更新同步
+
+当你在开发功能分支时，如果主分支更新了，你可以采取以下步骤来保持你的功能分支与最新的主分支同步：
+
+1. 提交当前工作：在你切换到主分支之前，确保你已经提交或者存储了当前功能分支上的所有修改。
+
+2. 切换到主分支：通过运行git checkout main命令，切换到主分支。
+
+3. 拉取最新代码：运行git pull origin main命令，从远程仓库的主分支拉取最新的代码。
+
+4. 切换回功能分支：运行git checkout <你的功能分支>命令，切换回你的功能分支。
+
+5. 合并主分支变更：运行git merge main命令，将主分支的更新合并到你的功能分支中。这将把主分支的最新代码合并到你的功能分支上。
+
+6. 解决冲突（如果有）：如果在合并主分支时出现冲突，你需要手动解决这些冲突。Git会提示你哪些文件发生了冲突，你需要打开这些文件并手动编辑以解决冲突。
+
+7. 提交合并结果：在解决完所有冲突后，使用git add <文件>命令将解决冲突的文件标记为已解决。然后运行git commit命令提交合并的结果。
+
+8. 现在你的功能分支应该包含主分支的最新更新。请注意，这只是一种处理主分支更新的方法，具体步骤可能因为你所使用的开发流程而有所不同。
+
+
 
 
 
